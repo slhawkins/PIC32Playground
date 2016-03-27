@@ -3,8 +3,8 @@
     <type>com.microchip.mplab.nbide.embedded.makeproject</type>
     <configuration>
         <data xmlns="http://www.netbeans.org/ns/make-project/1">
-            <name>I2CLib</name>
-            <creation-uuid>00df903a-d298-4678-bf10-3a0b4681afc0</creation-uuid>
+            <name>MPU9250</name>
+            <creation-uuid>a440c393-a82e-4d45-a950-4854d053d970</creation-uuid>
             <make-project-type>0</make-project-type>
             <c-extensions>c</c-extensions>
             <cpp-extensions/>
