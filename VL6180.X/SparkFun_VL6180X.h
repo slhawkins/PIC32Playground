@@ -120,7 +120,7 @@ typedef enum { //Data sheet shows gain values as binary list
 struct _VL6180X {
     uint8_t address;
     uint8_t distance;
-    uint16_t ambientLight;
+    float ambientLight;
     uint8_t idModel;
     uint8_t idModelRevMajor;
     uint8_t idModelRevMinor;
@@ -129,13 +129,13 @@ struct _VL6180X {
     uint16_t idDate;
     uint16_t idTime;
     uint8_t (*getDistance)(struct _VL6180X* self);
-    float (*getAmbientLight)(struct _VL6180X* self);   
+    float (*getAmbientLight)(struct _VL6180X* self, vl6180x_als_gain VL6180X_ALS_GAIN);   
 };
 typedef struct _VL6180X VL6180X;
 
 void VL6180XInit(VL6180X* self, uint8_t address);
 bool VL6180XInitialize(VL6180X* self);
 uint8_t getDistance(VL6180X* self);
-float getAmbientLight(VL6180X* self);//vl6180x_als_gain VL6180X_ALS_GAIN);
+float getAmbientLight(VL6180X* self, vl6180x_als_gain VL6180X_ALS_GAIN);
 
 #endif

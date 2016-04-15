@@ -8,7 +8,8 @@
 // Changelog:
 //     ...        - ongoing debug release
 //     2014-11-28 - ported to PIC18 peripheral library from Arduino code
-
+//     2015-03-30 - ported to a PIC32 by the BadgerLoop team.
+//
 // NOTE: THIS IS ONLY A PARIAL RELEASE. THIS DEVICE CLASS IS CURRENTLY UNDERGOING ACTIVE
 // DEVELOPMENT AND IS STILL MISSING SOME IMPORTANT FEATURES. PLEASE KEEP THIS IN MIND IF
 // YOU DECIDE TO USE THIS PARTICULAR CODE FOR ANYTHING.
@@ -52,6 +53,10 @@ void MPU9250(uint8_t address) {
     mpu6050.devAddr = address;
 }
 
+void MPU9250Compass(uint8_t address) {
+    mpu6050.magAddr = address;
+}
+
 /** Power on and prepare for general usage.
  * This will activate the device and take it out of sleep mode (which must be done
  * after start-up). This function also sets both the accelerometer and the gyroscope
@@ -64,6 +69,16 @@ void MPU9250_initialize() {
     MPU9250_setClockSource(MPU9250_CLOCK_PLL_XGYRO);
     MPU9250_setFullScaleGyroRange(MPU9250_GYRO_FS_500);
     MPU9250_setFullScaleAccelRange(MPU9250_ACCEL_FS_2);
+    
+    // 5kHz low pass filter for the gyroscope
+    MPU9250_setDLPFMode(0x06);
+    // 5kHz low pass filter for the accelerometer
+    I2CWriteByte(mpu6050.devAddr, MPU9250_RA_ACCEL_CONFIG2, 0x06);
+    // Bypass mode for the compass!
+    MPU9250_setI2CBypassEnabled(true);
+    // Sets the Compass into continuous measurement mode 2 and 16-bit output.
+    I2CWriteByte(mpu6050.magAddr, MPU9250_COMPASS_CNTL, 0x16);
+    
 }
 
 /** Verify the I2C connection.
@@ -376,35 +391,6 @@ void MPU9250_setDHPFMode(uint8_t bandwidth) {
     I2CWriteBits(mpu6050.devAddr, MPU9250_RA_ACCEL_CONFIG, MPU9250_ACONFIG_ACCEL_HPF_BIT, MPU9250_ACONFIG_ACCEL_HPF_LENGTH, bandwidth);
 }
 
-// FF_THR register
-
-/** Get free-fall event acceleration threshold.
- * This register configures the detection threshold for Free Fall event
- * detection. The unit of FF_THR is 1LSB = 2mg. Free Fall is detected when the
- * absolute value of the accelerometer measurements for the three axes are each
- * less than the detection threshold. This condition increments the Free Fall
- * duration counter (Register 30). The Free Fall interrupt is triggered when the
- * Free Fall duration counter reaches the time specified in FF_DUR.
- *
- * For more details on the Free Fall detection interrupt, see Section 8.2 of the
- * MPU-6000/MPU-6050 Product Specification document as well as Registers 56 and
- * 58 of this document.
- *
- * @return Current free-fall acceleration threshold value (LSB = 2mg)
- * @see MPU9250_RA_FF_THR
- */
-uint8_t MPU9250_getFreefallDetectionThreshold() {
-    I2CReadByte(mpu6050.devAddr, MPU9250_RA_FF_THR, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-/** Get free-fall event acceleration threshold.
- * @param threshold New free-fall acceleration threshold value (LSB = 2mg)
- * @see getFreefallDetectionThreshold()
- * @see MPU9250_RA_FF_THR
- */
-void MPU9250_setFreefallDetectionThreshold(uint8_t threshold) {
-    I2CWriteByte(mpu6050.devAddr, MPU9250_RA_FF_THR, threshold);
-}
 
 // FF_DUR register
 
@@ -1716,8 +1702,26 @@ bool MPU9250_getIntDataReadyStatus() {
  */
 void MPU9250_getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* mx, int16_t* my, int16_t* mz) {
     MPU9250_getMotion6(ax, ay, az, gx, gy, gz);
+    MPU9250_getCompassData(mx, my, mz);
     // TODO: magnetometer integration
 }
+
+void MPU9250_getCompassData(int16_t* mx, int16_t* my, int16_t* mz) {
+    uint8_t dataReady = 0;
+    while (!(dataReady & 0x01)) {
+        I2CReadByte(mpu6050.magAddr, MPU9250_COMPASS_ST1, &dataReady);
+    }
+    // The reason for 7 bytes here is because the 7th byte is the status register.
+    // Without reading it we can't get any other data. Next time I'll read the
+    // documentation before going nuts debugging. :-(
+    I2CReadBytes(mpu6050.magAddr, MPU9250_COMPASS_HXL, 7, mpu6050.buffer);
+    // Big-endian format for these... (opposite the accel/gyro)
+    *mx = mpu6050.buffer[1] << 8 | mpu6050.buffer[0];
+    *my = mpu6050.buffer[3] << 8 | mpu6050.buffer[2];
+    *mz = mpu6050.buffer[5] << 8 | mpu6050.buffer[4];
+}
+
+
 /** Get raw 6-axis motion sensor readings (accel/gyro).
  * Retrieves all currently available motion sensor values.
  * @param ax 16-bit signed integer container for accelerometer X-axis value
@@ -2709,9 +2713,6 @@ uint8_t MPU9250_getDeviceID() {
 void MPU9250_setDeviceID(uint8_t id) {
     I2CWriteBits(mpu6050.devAddr, MPU9250_RA_WHO_AM_I, MPU9250_WHO_AM_I_BIT, MPU9250_WHO_AM_I_LENGTH, id);
 }
-
-// ======== UNDOCUMENTED/DMP REGISTERS/METHODS ========
-
 // XG_OFFS_TC register
 
 uint8_t MPU9250_getOTPBankValid() {
@@ -2839,7 +2840,6 @@ void MPU9250_setZGyroOffset(int16_t offset) {
     I2CWriteWord(mpu6050.devAddr, MPU9250_RA_ZG_OFFS_USRH, offset);
 }
 
-// INT_ENABLE register (DMP functions)
 
 bool MPU9250_getIntPLLReadyEnabled() {
     I2CReadBit(mpu6050.devAddr, MPU9250_RA_INT_ENABLE, MPU9250_INTERRUPT_PLL_RDY_INT_BIT, mpu6050.buffer);
@@ -2848,65 +2848,12 @@ bool MPU9250_getIntPLLReadyEnabled() {
 void MPU9250_setIntPLLReadyEnabled(bool enabled) {
     I2CWriteBit(mpu6050.devAddr, MPU9250_RA_INT_ENABLE, MPU9250_INTERRUPT_PLL_RDY_INT_BIT, enabled);
 }
-bool MPU9250_getIntDMPEnabled() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_INT_ENABLE, MPU9250_INTERRUPT_DMP_INT_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-void MPU9250_setIntDMPEnabled(bool enabled) {
-    I2CWriteBit(mpu6050.devAddr, MPU9250_RA_INT_ENABLE, MPU9250_INTERRUPT_DMP_INT_BIT, enabled);
-}
-
-// DMP_INT_STATUS
-
-bool MPU9250_getDMPInt5Status() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_DMP_INT_STATUS, MPU9250_DMPINT_5_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-bool MPU9250_getDMPInt4Status() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_DMP_INT_STATUS, MPU9250_DMPINT_4_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-bool MPU9250_getDMPInt3Status() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_DMP_INT_STATUS, MPU9250_DMPINT_3_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-bool MPU9250_getDMPInt2Status() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_DMP_INT_STATUS, MPU9250_DMPINT_2_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-bool MPU9250_getDMPInt1Status() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_DMP_INT_STATUS, MPU9250_DMPINT_1_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-bool MPU9250_getDMPInt0Status() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_DMP_INT_STATUS, MPU9250_DMPINT_0_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-
 // INT_STATUS register (DMP functions)
 
 bool MPU9250_getIntPLLReadyStatus() {
     I2CReadBit(mpu6050.devAddr, MPU9250_RA_INT_STATUS, MPU9250_INTERRUPT_PLL_RDY_INT_BIT, mpu6050.buffer);
     return mpu6050.buffer[0];
 }
-bool MPU9250_getIntDMPStatus() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_INT_STATUS, MPU9250_INTERRUPT_DMP_INT_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-
-// USER_CTRL register (DMP functions)
-
-bool MPU9250_getDMPEnabled() {
-    I2CReadBit(mpu6050.devAddr, MPU9250_RA_USER_CTRL, MPU9250_USERCTRL_DMP_EN_BIT, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-void MPU9250_setDMPEnabled(bool enabled) {
-    I2CWriteBit(mpu6050.devAddr, MPU9250_RA_USER_CTRL, MPU9250_USERCTRL_DMP_EN_BIT, enabled);
-}
-void MPU9250_resetDMP() {
-    I2CWriteBit(mpu6050.devAddr, MPU9250_RA_USER_CTRL, MPU9250_USERCTRL_DMP_RESET_BIT, true);
-}
-
 // BANK_SEL register
 
 void MPU9250_setMemoryBank(uint8_t bank, bool prefetchEnabled, bool userBank) {
@@ -2962,181 +2909,4 @@ void MPU9250_readMemoryBlock(uint8_t *data, uint16_t dataSize, uint8_t bank, uin
             MPU9250_setMemoryStartAddress(address);
         }
     }
-}
-/*bool MPU9250_writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify, bool useProgMem) {
-    MPU9250_setMemoryBank(bank, false, false);
-    MPU9250_setMemoryStartAddress(address);
-    uint8_t chunkSize;
-    uint8_t *verifyBuffer;
-    uint8_t *progBuffer;
-    uint16_t i;
-    uint8_t j;
-    if (verify) verifyBuffer = (uint8_t *)malloc(MPU9250_DMP_MEMORY_CHUNK_SIZE);
-    if (useProgMem) progBuffer = (uint8_t *)malloc(MPU9250_DMP_MEMORY_CHUNK_SIZE);
-    for (i = 0; i < dataSize;) {
-        // determine correct chunk size according to bank position and data size
-        chunkSize = MPU9250_DMP_MEMORY_CHUNK_SIZE;
-
-        // make sure we don't go past the data size
-        if (i + chunkSize > dataSize) chunkSize = dataSize - i;
-
-        // make sure this chunk doesn't go past the bank boundary (256 bytes)
-        if (chunkSize > 256 - address) chunkSize = 256 - address;
-        
-        if (useProgMem) {
-            // write the chunk of data as specified
-            for (j = 0; j < chunkSize; j++) progBuffer[j] = pgm_read_byte(data + i + j);
-        } else {
-            // write the chunk of data as specified
-            progBuffer = (uint8_t *)data + i;
-        }
-
-        I2Cdev_writeBytes(mpu6050.devAddr, MPU9250_RA_MEM_R_W, chunkSize, progBuffer);
-
-        // verify data if needed
-        if (verify && verifyBuffer) {
-            MPU9250_setMemoryBank(bank, false, false);
-            MPU9250_setMemoryStartAddress(address);
-            I2CReadBytes(mpu6050.devAddr, MPU9250_RA_MEM_R_W, chunkSize, verifyBuffer);
-            if (memcmp(progBuffer, verifyBuffer, chunkSize) != 0) {
-                //Serial.print("Block write verification error, bank ");
-                //Serial.print(bank, DEC);
-                //Serial.print(", address ");
-                //Serial.print(address, DEC);
-                //Serial.print("!\nExpected:");
-                //for (j = 0; j < chunkSize; j++) {
-                //    Serial.print(" 0x");
-                //    if (progBuffer[j] < 16) Serial.print("0");
-                //    Serial.print(progBuffer[j], HEX);
-                //}
-                //Serial.print("\nReceived:");
-                //for (uint8_t j = 0; j < chunkSize; j++) {
-                //    Serial.print(" 0x");
-                //    if (verifyBuffer[i + j] < 16) Serial.print("0");
-                //    Serial.print(verifyBuffer[i + j], HEX);
-                //}
-                Serial.print("\n");
-                free(verifyBuffer);
-                if (useProgMem) free(progBuffer);
-                return false; // uh oh.
-            }
-        }
-
-        // increase byte index by [chunkSize]
-        i += chunkSize;
-
-        // uint8_t automatically wraps to 0 at 256
-        address += chunkSize;
-
-        // if we aren't done, update bank (if necessary) and address
-        if (i < dataSize) {
-            if (address == 0) bank++;
-            MPU9250_setMemoryBank(bank, false, false);
-            MPU9250_setMemoryStartAddress(address);
-        }
-    }
-    if (verify) free(verifyBuffer);
-    if (useProgMem) free(progBuffer);
-    return true;
-}
-bool MPU9250_writeProgMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify) {
-    return MPU9250_writeMemoryBlock(data, dataSize, bank, address, verify, true);
-}
-bool MPU9250_writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, bool useProgMem) {
-    uint8_t *progBuffer, success, special;
-    uint16_t i, j;
-    if (useProgMem) {
-        progBuffer = (uint8_t *)malloc(8); // assume 8-byte blocks, realloc later if necessary
-    }
-
-    // config set data is a long string of blocks with the following structure:
-    // [bank] [offset] [length] [byte[0], byte[1], ..., byte[length]]
-    uint8_t bank, offset, length;
-    for (i = 0; i < dataSize;) {
-        if (useProgMem) {
-            bank = pgm_read_byte(data + i++);
-            offset = pgm_read_byte(data + i++);
-            length = pgm_read_byte(data + i++);
-        } else {
-            bank = data[i++];
-            offset = data[i++];
-            length = data[i++];
-        }
-
-        // write data or perform special action
-        if (length > 0) {
-            // regular block of data to write
-            //Serial.print("Writing config block to bank ");
-            //Serial.print(bank);
-            //Serial.print(", offset ");
-            //Serial.print(offset);
-            //Serial.print(", length=");
-            //Serial.println(length);
-            if (useProgMem) {
-                if (sizeof(progBuffer) < length) progBuffer = (uint8_t *)realloc(progBuffer, length);
-                for (j = 0; j < length; j++) progBuffer[j] = pgm_read_byte(data + i + j);
-            } else {
-                progBuffer = (uint8_t *)data + i;
-            }
-            success = MPU9250_writeMemoryBlock(progBuffer, length, bank, offset, true);
-            i += length;
-        } else {
-            // special instruction
-            // NOTE: this kind of behavior (what and when to do certain things)
-            // is totally undocumented. This code is in here based on observed
-            // behavior only, and exactly why (or even whether) it has to be here
-            // is anybody's guess for now.
-            if (useProgMem) {
-                special = pgm_read_byte(data + i++);
-            } else {
-                special = data[i++];
-            }
-            //Serial.print("Special command code ");
-            //Serial.print(special, HEX);
-            //Serial.println(" found...");
-            if (special == 0x01) {
-                // enable DMP-related interrupts
-                
-                //setIntZeroMotionEnabled(true);
-                //setIntFIFOBufferOverflowEnabled(true);
-                //setIntDMPEnabled(true);
-                I2CWriteByte(mpu6050.devAddr, MPU9250_RA_INT_ENABLE, 0x32);  // single operation
-
-                success = true;
-            } else {
-                // unknown special command
-                success = false;
-            }
-        }
-        
-        if (!success) {
-            if (useProgMem) free(progBuffer);
-            return false; // uh oh
-        }
-    }
-    if (useProgMem) free(progBuffer);
-    return true;
-}
-bool MPU9250_writeProgDMPConfigurationSet(const uint8_t *data, uint16_t dataSize) {
-    return MPU9250_writeDMPConfigurationSet(data, dataSize, true);
-}*/
-
-// DMP_CFG_1 register
-
-uint8_t MPU9250_getDMPConfig1() {
-    I2CReadByte(mpu6050.devAddr, MPU9250_RA_DMP_CFG_1, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-void MPU9250_setDMPConfig1(uint8_t config) {
-    I2CWriteByte(mpu6050.devAddr, MPU9250_RA_DMP_CFG_1, config);
-}
-
-// DMP_CFG_2 register
-
-uint8_t MPU9250_getDMPConfig2() {
-    I2CReadByte(mpu6050.devAddr, MPU9250_RA_DMP_CFG_2, mpu6050.buffer);
-    return mpu6050.buffer[0];
-}
-void MPU9250_setDMPConfig2(uint8_t config) {
-    I2CWriteByte(mpu6050.devAddr, MPU9250_RA_DMP_CFG_2, config);
 }

@@ -1,55 +1,39 @@
-#include "main.h"
-#include <math.h>
-#include "thermistor.h"
-#define MAX_MESSAGE_LENGTH 200
-#define SLAVE_ADDR 0x32
+#include "MPU9250.h"
+#include <xc.h>
+#include <sys/attribs.h> 
 
-void printI2CStatus();
+#pragma config FNOSC    = PRIPLL
+#pragma config POSCMOD  = XT
+#pragma config FPLLIDIV = DIV_2
+#pragma config FPLLMUL  = MUL_16
+#pragma config FPLLODIV = DIV_1
+#pragma config FPBDIV   = DIV_1
+#pragma config FSOSCEN  = OFF
+#pragma config IESO     = OFF
+#pragma config FCKSM    = CSDCMD
+#pragma config OSCIOFNC = OFF
+#pragma config FWDTEN   = OFF
+#pragma config WDTPS    = PS1024
+#pragma config CP       = OFF
+#pragma config BWP      = OFF
+#pragma config PWP      = OFF
+#pragma config ICESEL   = ICS_PGx2
+#pragma config DEBUG    = ON
+#pragma config FCANIO = OFF
+#pragma config UPLLEN = ON
+#pragma config UPLLIDIV = DIV_2
+#define SYS_FREQ 64000000ul    // 80 million Hz
+#define DESIRED_BAUD 235000
 
-float getTemperature(int adcValue) {
-    char output[100] = {};
-    //sprintf(output, "Thermister: %5d\r\n", adcValue);
-    WriteUART1(output);
-    float thermistorResistance = THERMISTOR_SERIES_R / (1023.0/adcValue - 1);
-    //sprintf(output, "Thermister Res Value: %5f\r\n", thermistorResistance);
-    WriteUART1(output);
-    _CP0_SET_COUNT(0);
-    thermistorResistance = THERMISTOR_SERIES_R / (1023.0/adcValue - 1);
-    float temperature = log(thermistorResistance / THERMISTOR_RTEMP_R)/THERMISTOR_BETA + 1.0 / (THERMISTOR_RTEMP + 273.15);
-    temperature = 1.0 / temperature - 273.15;
-    int end = _CP0_GET_COUNT();
-    //float temperature = 1/THERMISTOR_RTEMP + (1/THERMISTOR_BETA) * log(thermistorResistance/THERMISTOR_RTEMP_R);
-    //temperature = 1/temperature - 273.15;
-    sprintf(output, "Thermister: %5d\t%5f\t%5f\t%5d\r\n", adcValue, thermistorResistance, temperature, end);//"Thermister Temperature: %5f\r\n", steinhart);
-    WriteUART1(output);
-}
+void Startup(void); // Basic startup
+void getMessage(char * string, int maxLength); // Retrieves a message sent over serial
+void print(const char * string); // Send a message over serial
+void printI2CStatus(); // Wrapper for checking the status of the I2C bus
 
 int main(void) {
-    INTCONbits.MVEC = 0x1;
-    
     char message[MAX_MESSAGE_LENGTH];
-
-    Startup(); // cache on, interrupts on, LED/button init, UART init
-    WriteUART1("Hello! Welcome to the Max32!\r\n");
-    /*
-    int i = 100000;
-    char output[100] = {};
-    while(1) {
-        _CP0_SET_COUNT(0);
-        log(i * 2.42563);
-        int end = _CP0_GET_COUNT();
-        sprintf(output, "Clock Cycles: %5d\r\n", end);
-        WriteUART1(output);
-    }
-    */
-    ADCInit(5, true);
-
-
-    ADCAdd(0, getTemperature);
-    ADCAdd(1, getTemperature);
-    ADCAdd(2, getTemperature);
-    while (1) {;}
-    /*
+    Startup();
+    print("Hello! Welcome to the Max32!\r\n");
     I2CInit();
     _CP0_SET_COUNT(0);
     while (_CP0_GET_COUNT() < 3200000) {
@@ -58,17 +42,14 @@ int main(void) {
     printI2CStatus();
     VL6180X mainProx; VL6180XInit(&mainProx, 0x29);
     printI2CStatus();
-    while (_CP0_GET_COUNT() < 32000000) {
-        ;
-    }*/
     /*MPU9250(0x68);
     MPU9250Compass(0x0C);
     MPU9250_initialize();
     printI2CStatus();*/
-    /*WriteUART1("Everything Initialized!\r\n");
+    WriteUART1("Everything Initialized!\r\n");
     while (1) {
         _CP0_SET_COUNT(0);
-        while (_CP0_GET_COUNT() < 1600000) {
+        while (_CP0_GET_COUNT() < 3200000) {
             ;
         }
         char value[12];
@@ -77,6 +58,8 @@ int main(void) {
         printI2CStatus();
         WriteUART1("Distance: "); itoa(value, d, 10); WriteUART1(value); WriteUART1("\r\n");
         WriteUART1("Iteration!\r\n");
+        */
+        /*
         uint16_t ax, ay, az, gx, gy, gz, mx, my, mz;
         MPU9250_getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &my, &mz);  printI2CStatus();
         itoa(value, ax, 10); WriteUART1(value); WriteUART1("\t");
@@ -88,22 +71,20 @@ int main(void) {
         itoa(value, mx, 10); WriteUART1(value); WriteUART1("\t");
         itoa(value, my, 10); WriteUART1(value); WriteUART1("\t");
         itoa(value, mz, 10); WriteUART1(value); WriteUART1("\r\n");
+         * */
         
         mainProx.getDistance(&mainProx);
         printI2CStatus();
-        char output[100] = {};
-        sprintf(output, "Distance Reading (mm): %3d\r\n", mainProx.distance);
-        WriteUART1(output);
+        WriteUART1("Distance: "); itoa(value, mainProx.distance, 10); WriteUART1(value); WriteUART1("\r\n");
         mainProx.getAmbientLight(&mainProx, GAIN_1);
         printI2CStatus();
         WriteUART1("Ambient Light: "); itoa(value, (int16_t)mainProx.ambientLight, 10); WriteUART1(value); WriteUART1("\r\n");
+        
         if (I2CStatus == I2CBusCollision) {
             I2CDisable();
             I2CInit();
         }
-        while (1) {;}
     }
-    */
     /*
     while (1) {
         WriteUART1("Send something to start the transmission.\r\n");
@@ -170,6 +151,55 @@ int main(void) {
     return 0;
 }
 
+void Startup() {
+  __builtin_disable_interrupts();
+  __builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583); 
+  CHECONbits.PFMWS = 0x2;   
+  CHECONbits.PREFEN = 0x3; 
+  BMXCONbits.BMXWSDRM = 0x0;
+  INTCONbits.MVEC = 0x1;
+  DDPCONbits.JTAGEN = 0;
+  U1MODEbits.BRGH = 0; // set baud to DESIRED_BAUD
+  U1BRG = ((SYS_FREQ / DESIRED_BAUD) / 16) - 1;
+  U1MODEbits.PDSEL = 0;
+  U1MODEbits.STSEL = 0;
+  U1STAbits.UTXEN = 1;
+  U1STAbits.URXEN = 1;
+  U1MODEbits.UEN = 0;
+  U1MODEbits.ON = 1;
+  __builtin_enable_interrupts();
+}
+
+void getMessage(char * message, int maxLength) {
+  char data = 0;
+  int complete = 0, num_bytes = 0;
+  while (!complete) {
+    if (U1STAbits.URXDA) {
+      data = U1RXREG;
+      if ((data == '\n') || (data == '\r')) {
+        complete = 1;
+      } else {
+        message[num_bytes] = data;
+        ++num_bytes;
+        if (num_bytes >= maxLength) {
+          num_bytes = 0;
+        }
+      }
+    }
+  }
+  message[num_bytes] = '\0';
+}
+
+void print(const char * string) {
+  while (*string != '\0') {
+    while (U1STAbits.UTXBF) {
+      ;
+    }
+    U1TXREG = *string;
+    ++string;
+  }
+}
+
 void printI2CStatus() {
     if (I2CStatus == I2CSuccess) {
         ;//WriteUART1("Success!\r\n");
@@ -178,7 +208,7 @@ void printI2CStatus() {
     } else if (I2CStatus == I2CBusCollision) {
         WriteUART1("Bus Collision!\r\n");
     } else if (I2CStatus == I2CAcknowledgementNotSent) {
-        WriteUART1("Acknowledgement Not Sent!\r\n");
+        WriteUART1("Slave Acknowledgement Not Sent!\r\n");
     } else if (I2CStatus == I2CReceiveOverflow) {
         WriteUART1("Receiver Overflow!\r\n");
     }

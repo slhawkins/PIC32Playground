@@ -45,17 +45,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=../USBDebug.X/USBDebug.c ../I2CLib.X/I2C.c ../MPU9250.X/MPU9250.c ../VL6180.X/SparkFun_VL6180X.c main.c exception.c
+SOURCEFILES_QUOTED_IF_SPACED=../USBDebug.X/USBDebug.c ../I2CLib.X/I2C.c ../MPU9250.X/MPU9250.c ../VL6180.X/SparkFun_VL6180X.c main.c exception.c adc.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/_ext/1227930920/USBDebug.o ${OBJECTDIR}/_ext/1237126756/I2C.o ${OBJECTDIR}/_ext/152673/MPU9250.o ${OBJECTDIR}/_ext/674505278/SparkFun_VL6180X.o ${OBJECTDIR}/main.o ${OBJECTDIR}/exception.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/_ext/1227930920/USBDebug.o.d ${OBJECTDIR}/_ext/1237126756/I2C.o.d ${OBJECTDIR}/_ext/152673/MPU9250.o.d ${OBJECTDIR}/_ext/674505278/SparkFun_VL6180X.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/exception.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/_ext/1227930920/USBDebug.o ${OBJECTDIR}/_ext/1237126756/I2C.o ${OBJECTDIR}/_ext/152673/MPU9250.o ${OBJECTDIR}/_ext/674505278/SparkFun_VL6180X.o ${OBJECTDIR}/main.o ${OBJECTDIR}/exception.o ${OBJECTDIR}/adc.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/_ext/1227930920/USBDebug.o.d ${OBJECTDIR}/_ext/1237126756/I2C.o.d ${OBJECTDIR}/_ext/152673/MPU9250.o.d ${OBJECTDIR}/_ext/674505278/SparkFun_VL6180X.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/exception.o.d ${OBJECTDIR}/adc.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/_ext/1227930920/USBDebug.o ${OBJECTDIR}/_ext/1237126756/I2C.o ${OBJECTDIR}/_ext/152673/MPU9250.o ${OBJECTDIR}/_ext/674505278/SparkFun_VL6180X.o ${OBJECTDIR}/main.o ${OBJECTDIR}/exception.o
+OBJECTFILES=${OBJECTDIR}/_ext/1227930920/USBDebug.o ${OBJECTDIR}/_ext/1237126756/I2C.o ${OBJECTDIR}/_ext/152673/MPU9250.o ${OBJECTDIR}/_ext/674505278/SparkFun_VL6180X.o ${OBJECTDIR}/main.o ${OBJECTDIR}/exception.o ${OBJECTDIR}/adc.o
 
 # Source Files
-SOURCEFILES=../USBDebug.X/USBDebug.c ../I2CLib.X/I2C.c ../MPU9250.X/MPU9250.c ../VL6180.X/SparkFun_VL6180X.c main.c exception.c
+SOURCEFILES=../USBDebug.X/USBDebug.c ../I2CLib.X/I2C.c ../MPU9250.X/MPU9250.c ../VL6180.X/SparkFun_VL6180X.c main.c exception.c adc.c
 
 
 CFLAGS=
@@ -130,6 +130,12 @@ ${OBJECTDIR}/exception.o: exception.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/exception.o 
 	@${FIXDEPS} "${OBJECTDIR}/exception.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/exception.o.d" -o ${OBJECTDIR}/exception.o exception.c     
 	
+${OBJECTDIR}/adc.o: adc.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/adc.o.d 
+	@${RM} ${OBJECTDIR}/adc.o 
+	@${FIXDEPS} "${OBJECTDIR}/adc.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/adc.o.d" -o ${OBJECTDIR}/adc.o adc.c     
+	
 else
 ${OBJECTDIR}/_ext/1227930920/USBDebug.o: ../USBDebug.X/USBDebug.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}/_ext/1227930920" 
@@ -166,6 +172,12 @@ ${OBJECTDIR}/exception.o: exception.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/exception.o.d 
 	@${RM} ${OBJECTDIR}/exception.o 
 	@${FIXDEPS} "${OBJECTDIR}/exception.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/exception.o.d" -o ${OBJECTDIR}/exception.o exception.c     
+	
+${OBJECTDIR}/adc.o: adc.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/adc.o.d 
+	@${RM} ${OBJECTDIR}/adc.o 
+	@${FIXDEPS} "${OBJECTDIR}/adc.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/adc.o.d" -o ${OBJECTDIR}/adc.o adc.c     
 	
 endif
 

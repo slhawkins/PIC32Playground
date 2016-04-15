@@ -45,17 +45,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=MPU9250.c
+SOURCEFILES_QUOTED_IF_SPACED=MPU9250.c main.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/MPU9250.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/MPU9250.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/MPU9250.o ${OBJECTDIR}/main.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/MPU9250.o.d ${OBJECTDIR}/main.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/MPU9250.o
+OBJECTFILES=${OBJECTDIR}/MPU9250.o ${OBJECTDIR}/main.o
 
 # Source Files
-SOURCEFILES=MPU9250.c
+SOURCEFILES=MPU9250.c main.c
 
 
 CFLAGS=
@@ -100,12 +100,24 @@ ${OBJECTDIR}/MPU9250.o: MPU9250.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/MPU9250.o 
 	@${FIXDEPS} "${OBJECTDIR}/MPU9250.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/MPU9250.o.d" -o ${OBJECTDIR}/MPU9250.o MPU9250.c     
 	
+${OBJECTDIR}/main.o: main.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/main.o.d 
+	@${RM} ${OBJECTDIR}/main.o 
+	@${FIXDEPS} "${OBJECTDIR}/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c     
+	
 else
 ${OBJECTDIR}/MPU9250.o: MPU9250.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/MPU9250.o.d 
 	@${RM} ${OBJECTDIR}/MPU9250.o 
 	@${FIXDEPS} "${OBJECTDIR}/MPU9250.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/MPU9250.o.d" -o ${OBJECTDIR}/MPU9250.o MPU9250.c     
+	
+${OBJECTDIR}/main.o: main.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/main.o.d 
+	@${RM} ${OBJECTDIR}/main.o 
+	@${FIXDEPS} "${OBJECTDIR}/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c     
 	
 endif
 

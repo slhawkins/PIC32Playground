@@ -10,8 +10,15 @@
  * 
  * In this file are the functions in the VL6180x class
  ******************************************************************************/
-
 #include "SparkFun_VL6180X.h"
+
+// Only for testing... not exact and should be deleted soon!
+void delay(uint16_t ms) {
+    uint32_t counter = 0;
+    while (counter < 32000*ms) {
+        counter++;
+    }
+}
 
 void VL6180XInit(VL6180X* self, uint8_t deviceAddress) {
     self->address = deviceAddress;
@@ -22,13 +29,19 @@ void VL6180XInit(VL6180X* self, uint8_t deviceAddress) {
     VL6180XInitialize(self);
 }
 
-
 bool VL6180XInitialize(VL6180X* self){
-    //uint8_t data;
-    // Check to see if the VL is fresh out of reset - if not then it suggests
-    // that initialization has already been done.
-    //I2C16bitReadBytes(self->address, VL6180X_SYSTEM_FRESH_OUT_OF_RESET, 1, &data);
-    //if(data != 1) return false;
+    // Get ID info
+    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODEL_ID, &(self->idModel));
+    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODEL_REV_MAJOR, &(self->idModelRevMajor));
+    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODEL_REV_MINOR, &(self->idModelRevMinor));
+    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODULE_REV_MAJOR, &(self->idModuleRevMajor));
+    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODULE_REV_MINOR, &(self->idModuleRevMinor));
+    I2C16bitReadWord(self->address, VL6180X_IDENTIFICATION_DATE_HI, &(self->idDate));
+    I2C16bitReadWord(self->address, VL6180X_IDENTIFICATION_TIME_HI, &(self->idTime));
+    
+    uint8_t data;
+    I2C16bitReadByte(self->address, VL6180X_SYSTEM_FRESH_OUT_OF_RESET, &data);
+    if (data != 1) return false;
     // Mandatory register settings, required by datasheet at:
     //    http://www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
     I2C16bitWriteByte(self->address, 0x0207, 0x01);
@@ -61,8 +74,10 @@ bool VL6180XInitialize(VL6180X* self){
     I2C16bitWriteByte(self->address, 0x01ac, 0x3e);
     I2C16bitWriteByte(self->address, 0x01a7, 0x1f);
     I2C16bitWriteByte(self->address, 0x0030, 0x00);
+   
     // Recommended settings from datasheet:
     //    http://www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
+    I2C16bitWriteByte(self->address, VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24 );
     I2C16bitWriteByte(self->address, VL6180X_SYSTEM_MODE_GPIO1, 0x10); // Sets GPIO for interrupt output
     I2C16bitWriteByte(self->address, VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD, 0x30); //Set Avg sample period
     I2C16bitWriteByte(self->address, VL6180X_SYSALS_ANALOGUE_GAIN, 0x46); // Set the ALS gain of 1
@@ -75,50 +90,29 @@ bool VL6180XInitialize(VL6180X* self){
     I2C16bitWriteByte(self->address, VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24); // Configures interrupt on ‘New Sample Ready threshold event’ 
     I2C16bitWriteByte(self->address, VL6180X_SYSRANGE_MAX_CONVERGENCE_TIME, 0x32);
     I2C16bitWriteByte(self->address, VL6180X_SYSRANGE_RANGE_CHECK_ENABLES, 0x10 | 0x01);
-    I2C16bitWriteWord(VL6180X_SYSRANGE_EARLY_CONVERGENCE_ESTIMATE, 0x007B );
-    I2C16bitWriteWord(VL6180X_SYSALS_INTEGRATION_PERIOD, 0x0064);
+    I2C16bitWriteWord(self->address, VL6180X_SYSRANGE_EARLY_CONVERGENCE_ESTIMATE, 0x007B );
+    I2C16bitWriteWord(self->address, VL6180X_SYSALS_INTEGRATION_PERIOD, 0x0064);
     I2C16bitWriteByte(self->address, VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD,0x30);
-    I2C16bitWriteByte(self->address, VL6180X_SYSALS_ANALOGUE_GAIN,0x46);
+    I2C16bitWriteByte(self->address, VL6180X_SYSALS_ANALOGUE_GAIN,0x40);
     I2C16bitWriteByte(self->address, VL6180X_FIRMWARE_RESULT_SCALER,0x01);
     // Clears the FRESH_OUT_OF_RESET bit to signal initialization is complete.
     //I2C16bitWriteByte(self->address, VL6180X_SYSTEM_FRESH_OUT_OF_RESET, 0x00);
-    // Get ID info
-    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODEL_ID, &(self->idModel));
-    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODEL_REV_MAJOR, &(self->idModelRevMajor));
-    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODEL_REV_MINOR, &(self->idModelRevMinor));
-    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODULE_REV_MAJOR, &(self->idModuleRevMajor));
-    I2C16bitReadByte(self->address, VL6180X_IDENTIFICATION_MODULE_REV_MINOR, &(self->idModuleRevMinor));
-    I2C16bitReadWord(self->address, VL6180X_IDENTIFICATION_DATE_HI, &(self->idDate));
-    I2C16bitReadWord(self->address, VL6180X_IDENTIFICATION_TIME_HI, &(self->idTime));
     return true;
-}
-
-int newRangeData(VL6180X* self) {
-    uint8_t readStatus;
-    int value;
-    I2C16bitReadBytes(self->address, VL6180X_RESULT_RANGE_STATUS, 1, &readStatus);
-    readStatus = (readStatus & 0x01);
-    if (readStatus) {
-        I2C16bitReadBytes(self->address, VL6180X_RESULT_RANGE_VAL, 1, &value);
-    } else {
-        return 0;
-    }
-    
-    //I2C16bitWriteByte(self->address, VL6180X_SYSTEM_INTERRUPT_CLEAR, 0x07);
-    return value;
 }
 
 uint8_t getDistance(VL6180X* self) {
     I2C16bitWriteByte(self->address, VL6180X_SYSRANGE_START, 0x01);
-    I2C16bitReadByte(self->address, VL6180X_RESULT_RANGE_VAL, &(self->distance));
-    return self->distance;
+    delay(1000);
+    uint8_t dis;
+    I2C16bitReadByte(self->address, VL6180X_RESULT_RANGE_VAL, &dis);
+    self->distance = dis;
+    return dis;
     //I2C16bitWriteByte(self->address, VL6180X_SYSTEM_INTERRUPT_CLEAR, 0x07);
     //	return distance;
 }
 
 /* Need to test/fix - Steve */
-float getAmbientLight(VL6180X* self) { //vl6180x_als_gain VL6180X_ALS_GAIN))
-    /*
+float getAmbientLight(VL6180X* self, vl6180x_als_gain VL6180X_ALS_GAIN) { //vl6180x_als_gain VL6180X_ALS_GAIN))
     //First load in Gain we are using, do it everytime incase someone changes it on us.
     //Note: Upper nibble shoudl be set to 0x4 i.e. for ALS gain of 1.0 write 0x46
     I2C16bitWriteByte(self->address, VL6180X_SYSALS_ANALOGUE_GAIN, (0x40 | VL6180X_ALS_GAIN)); // Set the ALS gain
@@ -126,16 +120,17 @@ float getAmbientLight(VL6180X* self) { //vl6180x_als_gain VL6180X_ALS_GAIN))
     //Start ALS Measurement 
     I2C16bitWriteByte(self->address, VL6180X_SYSALS_START, 0x01);
 
-    //delay(100); //give it time... 
-    //Delay10KTCYx(50);
+    delay(100); //give it time... 
 
     I2C16bitWriteByte(self->address, VL6180X_SYSTEM_INTERRUPT_CLEAR, 0x07);
 
     //Retrieve the Raw ALS value from the sensoe
-    unsigned int alsRaw = VL6180x_getRegister16bit(VL6180X_RESULT_ALS_VAL);
+    unsigned int alsRaw;
+    I2C16bitReadByte(self->address, VL6180X_RESULT_ALS_VAL, &alsRaw);
 
     //Get Integration Period for calculation, we do this everytime incase someone changes it on us.
-    unsigned int alsIntegrationPeriodRaw = VL6180x_getRegister16bit(VL6180X_SYSALS_INTEGRATION_PERIOD);
+    unsigned int alsIntegrationPeriodRaw;
+    I2C16bitReadByte(self->address, VL6180X_SYSALS_INTEGRATION_PERIOD, &alsIntegrationPeriodRaw);
 
     float alsIntegrationPeriod = 100.0 / alsIntegrationPeriodRaw ;
 
@@ -154,13 +149,9 @@ float getAmbientLight(VL6180X* self) { //vl6180x_als_gain VL6180X_ALS_GAIN))
         case GAIN_40: alsGain = 40.0; break;
     }
 
-  //Calculate LUX from formula in AppNotes
+    //Calculate LUX from formula in AppNotes
 
     float alsCalculated = (float)0.32 * ((float)alsRaw / alsGain) * alsIntegrationPeriod;
-
-    return alsCalculated;*/
-    return 0;
+    self->ambientLight = alsCalculated;
+    return alsCalculated;
 }
-
-
-

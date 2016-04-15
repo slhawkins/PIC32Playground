@@ -74,7 +74,7 @@ THE SOFTWARE.
 #define MPU9250_RA_CONFIG           0x1A
 #define MPU9250_RA_GYRO_CONFIG      0x1B
 #define MPU9250_RA_ACCEL_CONFIG     0x1C
-#define MPU9250_RA_FF_THR           0x1D
+#define MPU9250_RA_ACCEL_CONFIG2    0x1D
 #define MPU9250_RA_FF_DUR           0x1E
 #define MPU9250_RA_MOT_THR          0x1F
 #define MPU9250_RA_MOT_DUR          0x20
@@ -402,10 +402,33 @@ THE SOFTWARE.
 #define MPU9250_DMP_MEMORY_BANK_SIZE    256
 #define MPU9250_DMP_MEMORY_CHUNK_SIZE   16
 
+// Compass registers
+#define MPU9250_COMPASS_DEFAULT_ADDRESS 0x0C
+#define MPU9250_COMPASS_WIA             0x00
+#define MPU9250_COMPASS_INFO            0x01
+#define MPU9250_COMPASS_ST1             0x02
+#define MPU9250_COMPASS_HXL             0x03
+#define MPU9250_COMPASS_HXH             0x04
+#define MPU9250_COMPASS_HYL             0x05
+#define MPU9250_COMPASS_HYH             0x06
+#define MPU9250_COMPASS_HZL             0x07
+#define MPU9250_COMPASS_HZH             0x08
+#define MPU9250_COMPASS_ST2             0x09
+#define MPU9250_COMPASS_CNTL            0x0A
+#define MPU9250_COMPASS_RSV             0x0B
+#define MPU9250_COMPASS_ASTC            0x0C
+#define MPU9250_COMPASS_TS1             0x0D
+#define MPU9250_COMPASS_TS2             0x0E
+#define MPU9250_COMPASS_I2CDIS          0x0F
+#define MPU9250_COMPASS_ASAX            0x10
+#define MPU9250_COMPASS_ASAY            0x11
+#define MPU9250_COMPASS_ASAZ            0x12
+
 // note: DMP code memory blocks defined at end of header file
 
 typedef struct MPU9250_t {
     uint8_t devAddr;
+    uint8_t magAddr;
     uint8_t buffer[14];
 } MPU9250_t;
 
@@ -443,10 +466,6 @@ uint8_t MPU9250_getFullScaleAccelRange();
 void MPU9250_setFullScaleAccelRange(uint8_t range);
 uint8_t MPU9250_getDHPFMode();
 void MPU9250_setDHPFMode(uint8_t mode);
-
-// FF_THR register
-uint8_t MPU9250_getFreefallDetectionThreshold();
-void MPU9250_setFreefallDetectionThreshold(uint8_t threshold);
 
 // FF_DUR register
 uint8_t MPU9250_getFreefallDetectionDuration();
@@ -586,6 +605,7 @@ bool MPU9250_getIntDataReadyStatus();
 // ACCEL_*OUT_* registers
 void MPU9250_getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* mx, int16_t* my, int16_t* mz);
 void MPU9250_getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz);
+void MPU9250_getCompassData(int16_t* mx, int16_t* my, int16_t* mz);
 void MPU9250_getAcceleration(int16_t* x, int16_t* y, int16_t* z);
 int16_t MPU9250_getAccelerationX();
 int16_t MPU9250_getAccelerationY();
@@ -740,25 +760,8 @@ void MPU9250_setZGyroOffset(int16_t offset);
 // INT_ENABLE register (DMP functions)
 bool MPU9250_getIntPLLReadyEnabled();
 void MPU9250_setIntPLLReadyEnabled(bool enabled);
-bool MPU9250_getIntDMPEnabled();
-void MPU9250_setIntDMPEnabled(bool enabled);
-
-// DMP_INT_STATUS
-bool MPU9250_getDMPInt5Status();
-bool MPU9250_getDMPInt4Status();
-bool MPU9250_getDMPInt3Status();
-bool MPU9250_getDMPInt2Status();
-bool MPU9250_getDMPInt1Status();
-bool MPU9250_getDMPInt0Status();
-
 // INT_STATUS register (DMP functions)
 bool MPU9250_getIntPLLReadyStatus();
-bool MPU9250_getIntDMPStatus();
-
-// USER_CTRL register (DMP functions)
-bool MPU9250_getDMPEnabled();
-void MPU9250_setDMPEnabled(bool enabled);
-void MPU9250_resetDMP();
 
 // BANK_SEL register
 void MPU9250_setMemoryBank(uint8_t bank, bool prefetchEnabled, bool userBank);
@@ -770,18 +773,4 @@ void MPU9250_setMemoryStartAddress(uint8_t address);
 uint8_t MPU9250_readMemoryByte();
 void MPU9250_writeMemoryByte(uint8_t data);
 void MPU9250_readMemoryBlock(uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address);
-//bool MPU9250_writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify, bool useProgMem);
-//bool MPU9250_writeProgMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify);
-
-//bool MPU9250_writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, bool useProgMem);
-//bool MPU9250_writeProgDMPConfigurationSet(const uint8_t *data, uint16_t dataSize);
-
-// DMP_CFG_1 register
-uint8_t MPU9250_getDMPConfig1();
-void MPU9250_setDMPConfig1(uint8_t config);
-
-// DMP_CFG_2 register
-uint8_t MPU9250_getDMPConfig2();
-void MPU9250_setDMPConfig2(uint8_t config);
-
 #endif /* _MPU9250_H_ */
